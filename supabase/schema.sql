@@ -148,18 +148,21 @@ $$;
 
 grant execute on function submit_rsvp(text, text, boolean, integer, text, text) to anon;
 
--- Admin access for admin.html. Lets one signed-in Supabase Auth user read
--- the guest list; RLS still blocks everyone else (including anon) from
--- reading rsvps directly. Create that user yourself first: Supabase
--- dashboard -> Authentication -> Users -> Add user -> use this exact email
--- and a password only you know. Change the email below for a different login.
+-- Admin access for admin.html. Lets the signed-in Supabase Auth users listed
+-- below read the guest list; RLS still blocks everyone else (including anon)
+-- from reading rsvps directly. Create each user yourself first: Supabase
+-- dashboard -> Authentication -> Users -> Add user. Add/remove emails from
+-- the list below (here and in every admin_* function) to change who counts
+-- as an admin.
+drop policy if exists "admin can read rsvps" on rsvps;
 create policy "admin can read rsvps" on rsvps
   for select to authenticated
-  using (auth.jwt() ->> 'email' = 'qwas30000@gmail.com');
+  using (coalesce(auth.jwt() ->> 'email', '') in ('qwas30000@gmail.com', 'md.ad.alnasser@gmail.com'));
 
+drop policy if exists "admin can read side_counts" on side_counts;
 create policy "admin can read side_counts" on side_counts
   for select to authenticated
-  using (auth.jwt() ->> 'email' = 'qwas30000@gmail.com');
+  using (coalesce(auth.jwt() ->> 'email', '') in ('qwas30000@gmail.com', 'md.ad.alnasser@gmail.com'));
 
 create or replace function admin_set_capacity(p_side text, p_new_capacity integer)
 returns jsonb
@@ -168,7 +171,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+  if coalesce(auth.jwt() ->> 'email', '') not in ('qwas30000@gmail.com', 'md.ad.alnasser@gmail.com') then
     return jsonb_build_object('ok', false, 'error', 'forbidden');
   end if;
   if p_side not in ('groom','bride') then
@@ -192,7 +195,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+  if coalesce(auth.jwt() ->> 'email', '') not in ('qwas30000@gmail.com', 'md.ad.alnasser@gmail.com') then
     return jsonb_build_object('ok', false, 'error', 'forbidden');
   end if;
   if p_side not in ('groom','bride') then
@@ -229,7 +232,7 @@ declare
   v_code text;
   v_updated integer;
 begin
-  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+  if coalesce(auth.jwt() ->> 'email', '') not in ('qwas30000@gmail.com', 'md.ad.alnasser@gmail.com') then
     return jsonb_build_object('ok', false, 'error', 'forbidden');
   end if;
   if p_side not in ('groom','bride') then
@@ -287,7 +290,7 @@ declare
   v_new_party integer;
   v_updated integer;
 begin
-  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+  if coalesce(auth.jwt() ->> 'email', '') not in ('qwas30000@gmail.com', 'md.ad.alnasser@gmail.com') then
     return jsonb_build_object('ok', false, 'error', 'forbidden');
   end if;
   if p_side not in ('groom','bride') then
@@ -350,7 +353,7 @@ as $$
 declare
   v_old rsvps%rowtype;
 begin
-  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+  if coalesce(auth.jwt() ->> 'email', '') not in ('qwas30000@gmail.com', 'md.ad.alnasser@gmail.com') then
     return jsonb_build_object('ok', false, 'error', 'forbidden');
   end if;
 
