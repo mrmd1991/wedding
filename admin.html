@@ -31,6 +31,8 @@ tr:hover td{background:rgba(217,182,111,.06)}
 .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px}
 .tag.yes{background:rgba(120,200,120,.18);color:#9fe0a0}
 .tag.no{background:rgba(200,120,120,.18);color:#e5a3a3}
+tr.declinedRow td{background:rgba(200,120,120,.07);color:#d9b3b3}
+tr.declinedRow:hover td{background:rgba(200,120,120,.12)}
 .tableWrap{overflow-x:auto}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap}
 .capEdit{display:flex;gap:6px;margin-top:10px}
@@ -183,7 +185,7 @@ tr:hover td{background:rgba(217,182,111,.06)}
     let filtered=sideFilter?rows.filter(r=>r.side===sideFilter):rows;
     if(q) filtered=filtered.filter(r=>(r.guest_name||'').toLowerCase().includes(q)||(r.phone||'').toLowerCase().includes(q));
     $('#rows').innerHTML=filtered.map(r=>`
-      <tr>
+      <tr class="${r.attending?'':'declinedRow'}">
         <td>${escapeHtml(r.guest_name)}</td>
         <td style="direction:ltr;text-align:right">${escapeHtml(r.phone||'')}</td>
         <td>${sideLabel[r.side]||r.side}</td>
