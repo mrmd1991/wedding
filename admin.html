@@ -113,7 +113,7 @@ tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
       </div>
     </div>
     <div class="toolbar">
-      <div class="sideTabs">
+      <div class="sideTabs" id="guestSideTabs">
         <button class="sideTab active" id="filterAll" type="button" data-side="">الكل</button>
         <button class="sideTab" id="filterGroom" type="button" data-side="groom">طرف العريس</button>
         <button class="sideTab" id="filterBride" type="button" data-side="bride">طرف العروس</button>
@@ -134,16 +134,24 @@ tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
     </div>
 
     <h1 style="margin-top:34px">الأجهزة التي فتحت الرابط</h1>
+    <div class="toolbar">
+      <div class="sideTabs" id="deviceSideTabs">
+        <button class="sideTab active" id="deviceFilterAll" type="button" data-side="">الكل</button>
+        <button class="sideTab" id="deviceFilterGroom" type="button" data-side="groom">طرف العريس</button>
+        <button class="sideTab" id="deviceFilterBride" type="button" data-side="bride">طرف العروس</button>
+      </div>
+    </div>
     <div class="tableWrap">
       <table>
         <thead>
           <tr>
-            <th>الطرف</th><th>معرف الجهاز</th><th>الحالة</th><th>تاريخ الفتح</th>
+            <th>#</th><th>الطرف</th><th>معرف الجهاز</th><th>الحالة</th><th>تاريخ الفتح</th>
           </tr>
         </thead>
         <tbody id="linkOpenRows"></tbody>
       </table>
     </div>
+    <p class="note" id="linkOpenTotal" style="text-align:center"></p>
   </div>
 </div>
 
@@ -264,17 +272,29 @@ tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
   }
 
   const rejectReasonLabel={side_full:'مرفوض (اكتمال العدد)',side_disabled:'مرفوض (الرابط متوقف)'};
+  let allLinkOpens=[];
+  let deviceSideFilter='';
 
-  async function loadLinkOpens(){
-    const {data,error}=await supabase.from('link_opens').select('*').order('created_at',{ascending:false});
-    if(error){$('#linkOpenRows').innerHTML='';return}
-    $('#linkOpenRows').innerHTML=(data||[]).map(r=>`
+  function renderLinkOpens(){
+    const filtered=deviceSideFilter?allLinkOpens.filter(r=>r.side===deviceSideFilter):allLinkOpens;
+    $('#linkOpenRows').innerHTML=filtered.map((r,i)=>`
       <tr class="${r.granted?'':'rejectedRow'}">
+        <td>${i+1}</td>
         <td>${sideLabel[r.side]||r.side}</td>
         <td style="direction:ltr;text-align:right">${escapeHtml(r.device_id)}</td>
         <td>${r.granted?'<span class="tag yes">مسموح</span>':'<span class="tag full">'+(rejectReasonLabel[r.reason]||'مرفوض')+'</span>'}</td>
         <td>${new Date(r.created_at).toLocaleString('ar')}</td>
       </tr>`).join('');
+    const grantedCount=filtered.filter(r=>r.granted).length;
+    const rejectedCount=filtered.length-grantedCount;
+    $('#linkOpenTotal').textContent=`الإجمالي: ${filtered.length} — مسموح: ${grantedCount} — مرفوض: ${rejectedCount}`;
+  }
+
+  async function loadLinkOpens(){
+    const {data,error}=await supabase.from('link_opens').select('*').order('created_at',{ascending:false});
+    if(error){$('#linkOpenRows').innerHTML='';$('#linkOpenTotal').textContent='';return}
+    allLinkOpens=data||[];
+    renderLinkOpens();
   }
 
   async function showDashboard(session){
@@ -334,12 +354,21 @@ tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
   $('#groomToggle').addEventListener('click',()=>toggleEnabled('groom'));
   $('#brideToggle').addEventListener('click',()=>toggleEnabled('bride'));
 
-  document.querySelectorAll('.sideTab').forEach(tab=>{
+  document.querySelectorAll('#guestSideTabs .sideTab').forEach(tab=>{
     tab.addEventListener('click',()=>{
-      document.querySelectorAll('.sideTab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('#guestSideTabs .sideTab').forEach(t=>t.classList.remove('active'));
       tab.classList.add('active');
       sideFilter=tab.dataset.side;
       render(allRows);
+    });
+  });
+
+  document.querySelectorAll('#deviceSideTabs .sideTab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      document.querySelectorAll('#deviceSideTabs .sideTab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      deviceSideFilter=tab.dataset.side;
+      renderLinkOpens();
     });
   });
 
