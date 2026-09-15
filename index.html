@@ -91,10 +91,12 @@ body{min-height:100vh}
         <p id="rsvpStatus" class="note" role="status" aria-live="polite"></p>
       </form>
       <div id="rsvpResult" class="rsvp" style="display:none;margin-top:16px;padding:0;background:none;border:none">
-        <div class="note" id="resultHeading" style="color:var(--gold2);font-weight:700;font-size:16px">تم تأكيد حضوركم 🎉</div>
-        <div class="code-box" id="codeBox"></div>
-        <div class="note">يرجى حفظ هذا الرمز، قد يُطلب منكم إبرازه عند الحضور.</div>
-        <button id="copyCodeBtn" class="btn secondary" type="button">نسخ الرمز</button>
+        <div id="resultCode">
+          <div class="note" id="resultHeading" style="color:var(--gold2);font-weight:700;font-size:16px">تم تأكيد حضوركم 🎉</div>
+          <div class="code-box" id="codeBox"></div>
+          <div class="note">يرجى حفظ هذا الرمز، قد يُطلب منكم إبرازه عند الحضور.</div>
+          <button id="copyCodeBtn" class="btn secondary" type="button">نسخ الرمز</button>
+        </div>
         <div id="resultLocation">
           <div class="note" style="margin-top:16px">📍 صالة البريك 4 - الدمام</div>
           <a class="btn" href="https://maps.app.goo.gl/LM5phJ75VYrs56Kf6?g_st=ic" target="_blank" rel="noopener noreferrer">📍 فتح الموقع في خرائط Google</a>
@@ -224,12 +226,12 @@ body{min-height:100vh}
       }
       markResponded();
       if(data.already_registered){
-        $('#resultHeading').textContent='أنتم مسجلون بالفعل 👋';
-        $('#codeBox').textContent=data.code;
-        $('#resultLocation').style.display='none';
+        $('#resultCode').style.display='none';
+        $('#resultLocation').style.display='';
         $('#rsvpResult').style.display='';
         $('#rsvpForm').style.display='none';
       }else if(data.attending){
+        $('#resultCode').style.display='';
         $('#resultHeading').textContent='تم تأكيد حضوركم 🎉';
         $('#codeBox').textContent=data.code;
         $('#resultLocation').style.display='';
