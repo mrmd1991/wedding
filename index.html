@@ -95,6 +95,7 @@ body{min-height:100vh}
         <div class="note">يرجى حفظ هذا الرمز، قد يُطلب منكم إبرازه عند الحضور.</div>
         <button id="copyCodeBtn" class="btn secondary" type="button">نسخ الرمز</button>
       </div>
+      <div id="rsvpUnavailable" class="note" style="display:none">تعذر الاتصال بالخادم، يرجى المحاولة لاحقاً.</div>
     </section>
   </main>
 </section>
@@ -129,6 +130,7 @@ body{min-height:100vh}
   tick();setInterval(tick,1000);
   let rsvp='';
   let sideFull=false;
+  let sideEnabled=true;
   if(guest) $('#guestName').value=guest;
   if(urlSide) $('#sideLabel').textContent=urlSide==='groom'?'من طرف العريس':'من طرف العروس';
 
@@ -140,16 +142,30 @@ body{min-height:100vh}
   }
 
   function applySideVisibility(){
-    $('#rsvpSection').style.display=(!urlSide||sideFull||hasAlreadyResponded())?'none':'';
+    const section=$('#rsvpSection');
+    if(!urlSide||sideFull||hasAlreadyResponded()){
+      section.style.display='none';
+      return;
+    }
+    section.style.display='';
+    if(!sideEnabled){
+      $('#rsvpForm').style.display='none';
+      $('#rsvpResult').style.display='none';
+      $('#rsvpUnavailable').style.display='';
+    }else{
+      $('#rsvpUnavailable').style.display='none';
+      $('#rsvpForm').style.display='';
+    }
   }
   applySideVisibility();
 
   async function refreshSideStatus(){
     if(!supabase||!urlSide) return;
     try{
-      const {data,error}=await supabase.from('side_status').select('is_full').eq('side',urlSide).maybeSingle();
+      const {data,error}=await supabase.from('side_status').select('is_full,enabled').eq('side',urlSide).maybeSingle();
       if(error||!data) return;
       sideFull=!!data.is_full;
+      sideEnabled=data.enabled!==false;
       applySideVisibility();
     }catch(e){}
   }
@@ -189,6 +205,10 @@ body{min-height:100vh}
       if(error||!data||!data.ok){
         if(data&&data.error==='side_full'){
           await refreshSideStatus();
+          $('#rsvpStatus').textContent='';
+        }else if(data&&data.error==='side_disabled'){
+          sideEnabled=false;
+          applySideVisibility();
           $('#rsvpStatus').textContent='';
         }else{
           $('#rsvpStatus').textContent='';

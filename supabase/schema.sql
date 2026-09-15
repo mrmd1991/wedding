@@ -6,8 +6,11 @@ create extension if not exists pgcrypto;
 create table if not exists side_counts (
   side text primary key check (side in ('groom','bride')),
   capacity integer not null,
-  used integer not null default 0 check (used >= 0)
+  used integer not null default 0 check (used >= 0),
+  enabled boolean not null default true
 );
+
+alter table side_counts add column if not exists enabled boolean not null default true;
 
 insert into side_counts (side, capacity, used) values
   ('groom', 100, 0),
@@ -31,7 +34,7 @@ alter table rsvps enable row level security;
 -- them directly, only through submit_rsvp()/side_status below.
 
 create or replace view side_status as
-  select side, (used >= capacity) as is_full
+  select side, (used >= capacity) as is_full, enabled
   from side_counts;
 
 grant select on side_status to anon;
@@ -74,9 +77,15 @@ declare
   v_party_size integer;
   v_code text;
   v_updated integer;
+  v_enabled boolean;
 begin
   if p_side not in ('groom','bride') then
     return jsonb_build_object('ok', false, 'error', 'invalid_side');
+  end if;
+
+  select enabled into v_enabled from side_counts where side = p_side;
+  if not coalesce(v_enabled, true) then
+    return jsonb_build_object('ok', false, 'error', 'side_disabled');
   end if;
 
   p_name := trim(coalesce(p_name, ''));
@@ -151,3 +160,27 @@ end;
 $$;
 
 grant execute on function admin_set_capacity(text, integer) to authenticated;
+
+create or replace function admin_set_enabled(p_side text, p_enabled boolean)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+    return jsonb_build_object('ok', false, 'error', 'forbidden');
+  end if;
+  if p_side not in ('groom','bride') then
+    return jsonb_build_object('ok', false, 'error', 'invalid_side');
+  end if;
+  if p_enabled is null then
+    return jsonb_build_object('ok', false, 'error', 'invalid_value');
+  end if;
+
+  update side_counts set enabled = p_enabled where side = p_side;
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+grant execute on function admin_set_enabled(text, boolean) to authenticated;

@@ -39,6 +39,9 @@ tr:hover td{background:rgba(217,182,111,.06)}
 .capMsg{font-size:12px;margin-top:6px;min-height:14px}
 .capMsg.ok{color:#9fe0a0}
 .capMsg.err{color:#e59a9a}
+.toggleBtn{display:block;width:100%;margin-top:10px;border-radius:10px;border:1px solid;padding:8px;font-size:13px;font-weight:700;cursor:pointer;font:inherit}
+.toggleBtn.on{background:rgba(120,200,120,.14);border-color:#5a8a5a;color:#9fe0a0}
+.toggleBtn.off{background:rgba(200,120,120,.14);border-color:#8a5a5a;color:#e5a3a3}
 </style>
 </head>
 <body>
@@ -71,6 +74,7 @@ tr:hover td{background:rgba(217,182,111,.06)}
           <button class="btn secondary" id="groomCapSave" type="button">حفظ</button>
         </div>
         <p class="capMsg" id="groomCapMsg"></p>
+        <button class="toggleBtn" id="groomToggle" type="button">-</button>
       </div>
       <div class="stat">
         <b><span id="brideCount">-</span> / <span id="brideCapacity">-</span></b>
@@ -80,6 +84,7 @@ tr:hover td{background:rgba(217,182,111,.06)}
           <button class="btn secondary" id="brideCapSave" type="button">حفظ</button>
         </div>
         <p class="capMsg" id="brideCapMsg"></p>
+        <button class="toggleBtn" id="brideToggle" type="button">-</button>
       </div>
     </div>
     <div class="toolbar">
@@ -143,6 +148,10 @@ tr:hover td{background:rgba(217,182,111,.06)}
       $('#'+r.side+'Count').textContent=r.used;
       $('#'+r.side+'Capacity').textContent=r.capacity;
       $('#'+r.side+'CapInput').value=r.capacity;
+      const btn=$('#'+r.side+'Toggle');
+      btn.textContent=r.enabled?'الرابط مفعّل — اضغط للإيقاف':'الرابط متوقف — اضغط للتفعيل';
+      btn.className='toggleBtn '+(r.enabled?'on':'off');
+      btn.dataset.enabled=r.enabled?'1':'0';
     });
   }
 
@@ -155,6 +164,16 @@ tr:hover td{background:rgba(217,182,111,.06)}
     const {data,error}=await supabase.rpc('admin_set_capacity',{p_side:side,p_new_capacity:value});
     if(error||!data||!data.ok){msg.textContent='تعذر الحفظ';msg.className='capMsg err';return}
     msg.textContent='تم الحفظ';msg.className='capMsg ok';
+    await loadCapacity();
+  }
+
+  async function toggleEnabled(side){
+    const btn=$('#'+side+'Toggle');
+    const nextValue=btn.dataset.enabled!=='1';
+    btn.disabled=true;
+    const {data,error}=await supabase.rpc('admin_set_enabled',{p_side:side,p_enabled:nextValue});
+    btn.disabled=false;
+    if(error||!data||!data.ok) return;
     await loadCapacity();
   }
 
@@ -188,6 +207,8 @@ tr:hover td{background:rgba(217,182,111,.06)}
   $('#search').addEventListener('input',()=>render(allRows));
   $('#groomCapSave').addEventListener('click',()=>saveCapacity('groom'));
   $('#brideCapSave').addEventListener('click',()=>saveCapacity('bride'));
+  $('#groomToggle').addEventListener('click',()=>toggleEnabled('groom'));
+  $('#brideToggle').addEventListener('click',()=>toggleEnabled('bride'));
 
   $('#exportBtn').addEventListener('click',()=>{
     const header=['guest_name','side','attending','companions','code','notes','created_at'];
