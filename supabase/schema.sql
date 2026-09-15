@@ -154,6 +154,12 @@ grant execute on function submit_rsvp(text, text, boolean, integer, text, text) 
 -- dashboard -> Authentication -> Users -> Add user. Add/remove emails from
 -- the list below (here and in every admin_* function) to change who counts
 -- as an admin.
+--
+-- RLS policies only filter rows; the authenticated role still needs the
+-- base table-level privilege or every query 42501s regardless of policy.
+grant select on rsvps to authenticated;
+grant select on side_counts to authenticated;
+
 drop policy if exists "admin can read rsvps" on rsvps;
 create policy "admin can read rsvps" on rsvps
   for select to authenticated
