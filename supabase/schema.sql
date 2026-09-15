@@ -123,3 +123,31 @@ grant execute on function submit_rsvp(text, text, boolean, integer, text) to ano
 create policy "admin can read rsvps" on rsvps
   for select to authenticated
   using (auth.jwt() ->> 'email' = 'qwas30000@gmail.com');
+
+create policy "admin can read side_counts" on side_counts
+  for select to authenticated
+  using (auth.jwt() ->> 'email' = 'qwas30000@gmail.com');
+
+create or replace function admin_set_capacity(p_side text, p_new_capacity integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+    return jsonb_build_object('ok', false, 'error', 'forbidden');
+  end if;
+  if p_side not in ('groom','bride') then
+    return jsonb_build_object('ok', false, 'error', 'invalid_side');
+  end if;
+  if p_new_capacity is null or p_new_capacity < 0 then
+    return jsonb_build_object('ok', false, 'error', 'invalid_capacity');
+  end if;
+
+  update side_counts set capacity = p_new_capacity where side = p_side;
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+grant execute on function admin_set_capacity(text, integer) to authenticated;

@@ -33,6 +33,12 @@ tr:hover td{background:rgba(217,182,111,.06)}
 .tag.no{background:rgba(200,120,120,.18);color:#e5a3a3}
 .tableWrap{overflow-x:auto}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap}
+.capEdit{display:flex;gap:6px;margin-top:10px}
+.capEdit input{margin:0;padding:7px;font-size:14px;text-align:center}
+.capEdit button{padding:7px 12px;font-size:13px}
+.capMsg{font-size:12px;margin-top:6px;min-height:14px}
+.capMsg.ok{color:#9fe0a0}
+.capMsg.err{color:#e59a9a}
 </style>
 </head>
 <body>
@@ -57,8 +63,24 @@ tr:hover td{background:rgba(217,182,111,.06)}
       </div>
     </div>
     <div class="stats">
-      <div class="stat"><b id="groomCount">-</b><span>طرف العريس (من 100)</span></div>
-      <div class="stat"><b id="brideCount">-</b><span>طرف العروس (من 100)</span></div>
+      <div class="stat">
+        <b><span id="groomCount">-</span> / <span id="groomCapacity">-</span></b>
+        <span>طرف العريس</span>
+        <div class="capEdit">
+          <input class="field" id="groomCapInput" type="number" min="0" step="1" placeholder="الحد الأقصى">
+          <button class="btn secondary" id="groomCapSave" type="button">حفظ</button>
+        </div>
+        <p class="capMsg" id="groomCapMsg"></p>
+      </div>
+      <div class="stat">
+        <b><span id="brideCount">-</span> / <span id="brideCapacity">-</span></b>
+        <span>طرف العروس</span>
+        <div class="capEdit">
+          <input class="field" id="brideCapInput" type="number" min="0" step="1" placeholder="الحد الأقصى">
+          <button class="btn secondary" id="brideCapSave" type="button">حفظ</button>
+        </div>
+        <p class="capMsg" id="brideCapMsg"></p>
+      </div>
     </div>
     <div class="toolbar">
       <input class="field" id="search" type="text" placeholder="بحث بالاسم...">
@@ -101,10 +123,6 @@ tr:hover td{background:rgba(217,182,111,.06)}
         <td>${escapeHtml(r.notes||'')}</td>
         <td>${new Date(r.created_at).toLocaleString('ar')}</td>
       </tr>`).join('');
-    const groom=rows.filter(r=>r.side==='groom'&&r.attending).reduce((n,r)=>n+1+r.companions,0);
-    const bride=rows.filter(r=>r.side==='bride'&&r.attending).reduce((n,r)=>n+1+r.companions,0);
-    $('#groomCount').textContent=groom;
-    $('#brideCount').textContent=bride;
   }
 
   function escapeHtml(s){
@@ -118,11 +136,33 @@ tr:hover td{background:rgba(217,182,111,.06)}
     render(allRows);
   }
 
+  async function loadCapacity(){
+    const {data,error}=await supabase.from('side_counts').select('*');
+    if(error||!data) return;
+    data.forEach(r=>{
+      $('#'+r.side+'Count').textContent=r.used;
+      $('#'+r.side+'Capacity').textContent=r.capacity;
+      $('#'+r.side+'CapInput').value=r.capacity;
+    });
+  }
+
+  async function saveCapacity(side){
+    const input=$('#'+side+'CapInput');
+    const msg=$('#'+side+'CapMsg');
+    const value=parseInt(input.value,10);
+    if(isNaN(value)||value<0){msg.textContent='أدخل رقماً صحيحاً';msg.className='capMsg err';return}
+    msg.textContent='...';msg.className='capMsg';
+    const {data,error}=await supabase.rpc('admin_set_capacity',{p_side:side,p_new_capacity:value});
+    if(error||!data||!data.ok){msg.textContent='تعذر الحفظ';msg.className='capMsg err';return}
+    msg.textContent='تم الحفظ';msg.className='capMsg ok';
+    await loadCapacity();
+  }
+
   async function showDashboard(session){
     $('#loginCard').hidden=true;
     $('#dashboard').hidden=false;
     $('#whoami').textContent=session.user.email;
-    await loadRows();
+    await Promise.all([loadRows(),loadCapacity()]);
   }
 
   supabase.auth.getSession().then(({data})=>{
@@ -144,8 +184,10 @@ tr:hover td{background:rgba(217,182,111,.06)}
     location.reload();
   });
 
-  $('#refreshBtn').addEventListener('click',loadRows);
+  $('#refreshBtn').addEventListener('click',()=>Promise.all([loadRows(),loadCapacity()]));
   $('#search').addEventListener('input',()=>render(allRows));
+  $('#groomCapSave').addEventListener('click',()=>saveCapacity('groom'));
+  $('#brideCapSave').addEventListener('click',()=>saveCapacity('bride'));
 
   $('#exportBtn').addEventListener('click',()=>{
     const header=['guest_name','side','attending','companions','code','notes','created_at'];
