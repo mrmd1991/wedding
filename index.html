@@ -132,8 +132,15 @@ body{min-height:100vh}
   if(guest) $('#guestName').value=guest;
   if(urlSide) $('#sideLabel').textContent=urlSide==='groom'?'من طرف العريس':'من طرف العروس';
 
+  function hasAlreadyResponded(){
+    try{return urlSide&&localStorage.getItem('rsvp_done_'+urlSide)==='1'}catch(e){return false}
+  }
+  function markResponded(){
+    try{if(urlSide) localStorage.setItem('rsvp_done_'+urlSide,'1')}catch(e){}
+  }
+
   function applySideVisibility(){
-    $('#rsvpSection').style.display=(!urlSide||sideFull)?'none':'';
+    $('#rsvpSection').style.display=(!urlSide||sideFull||hasAlreadyResponded())?'none':'';
   }
   applySideVisibility();
 
@@ -190,6 +197,7 @@ body{min-height:100vh}
         submitBtn.disabled=false;
         return;
       }
+      markResponded();
       if(data.attending){
         $('#codeBox').textContent=data.code;
         $('#rsvpResult').style.display='';
@@ -197,9 +205,7 @@ body{min-height:100vh}
       }else{
         $('#rsvpStatus').textContent='';
         showToast('شكراً لتأكيد ردكم');
-        $('#rsvpForm').reset();
-        rsvp='';
-        document.querySelectorAll('[data-rsvp]').forEach(x=>{x.classList.remove('active');x.setAttribute('aria-pressed','false')});
+        $('#rsvpForm').style.display='none';
       }
     }catch(e){
       $('#rsvpStatus').textContent='';

@@ -114,3 +114,12 @@ end;
 $$;
 
 grant execute on function submit_rsvp(text, text, boolean, integer, text) to anon;
+
+-- Admin access for admin.html. Lets one signed-in Supabase Auth user read
+-- the guest list; RLS still blocks everyone else (including anon) from
+-- reading rsvps directly. Create that user yourself first: Supabase
+-- dashboard -> Authentication -> Users -> Add user -> use this exact email
+-- and a password only you know. Change the email below for a different login.
+create policy "admin can read rsvps" on rsvps
+  for select to authenticated
+  using (auth.jwt() ->> 'email' = 'qwas30000@gmail.com');
