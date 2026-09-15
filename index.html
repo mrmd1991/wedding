@@ -22,13 +22,10 @@ body{min-height:100vh}
 .details{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:26px 0}.box{background:var(--card);border:1px solid rgba(217,182,111,.55);border-radius:16px;padding:16px 10px;line-height:1.8}.box b{color:var(--gold2);display:block;font-size:15px}.box span{font-size:14px;color:#f2ead5}.wide{grid-column:1/-1}
 .btn{display:block;width:100%;border:1px solid var(--gold);border-radius:14px;background:linear-gradient(180deg,#d8b66f,#a9813f);color:#151006;text-decoration:none;padding:14px 18px;font-weight:800;cursor:pointer;margin-top:12px}.btn.secondary{background:rgba(20,22,15,.72);color:var(--gold2)}
 .count{display:flex;gap:8px;justify-content:center;direction:ltr;margin:22px 0}.unit{min-width:66px;background:rgba(15,17,10,.8);border:1px solid rgba(217,182,111,.55);border-radius:14px;padding:12px 7px}.num{font-size:25px;color:var(--gold2);font-weight:800}.lbl{font-size:11px;color:#d8cba8;margin-top:3px}
-.rsvp{margin-top:30px;padding:22px 16px;background:rgba(12,14,8,.85);border:1px solid rgba(217,182,111,.45);border-radius:20px}.rsvp h2{color:var(--gold2);margin:0 0 14px}.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.choice{padding:12px;border-radius:12px;border:1px solid #82662f;background:#17190f;color:#f6e9c6;cursor:pointer}.choice.active{outline:2px solid var(--gold);background:#26210f}.note{font-size:12px;color:#bdb49b;line-height:1.7;margin-top:14px}
+.rsvp{margin-top:30px;padding:22px 16px;background:rgba(12,14,8,.85);border:1px solid rgba(217,182,111,.45);border-radius:20px}.rsvp h2{color:var(--gold2);margin:0 0 14px}.note{font-size:12px;color:#bdb49b;line-height:1.7;margin-top:14px}
 #splash{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 25%,#302512 0,#120f08 38%,#070704 100%);display:flex;align-items:center;justify-content:center;padding:24px}.splashCard{text-align:center;max-width:430px;width:100%;border:1px solid rgba(217,182,111,.65);border-radius:24px;padding:42px 24px;background:rgba(8,9,5,.72);box-shadow:0 0 60px rgba(0,0,0,.45)}.splashCard h1{color:var(--gold2);font-size:34px;margin:0 0 8px}.splashCard p{color:#ddcfaa;line-height:1.9}.openBtn{width:100%;border:0;border-radius:14px;padding:16px 20px;margin-top:22px;background:linear-gradient(180deg,#ebcf91,#b68b43);color:#191208;font-weight:900;font-size:18px;cursor:pointer;touch-action:manipulation}.openBtn:active{transform:scale(.99)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10000;background:#181b11;border:1px solid var(--gold);color:#f5e7c3;padding:10px 16px;border-radius:999px;display:none;max-width:90vw;text-align:center}
 @media(max-width:420px){.groom{font-size:54px}.private{font-size:30px}.spacer{height:48vh;min-height:320px}.details{gap:9px}.box{padding:13px 8px}}
-.rsvp-label{display:block;text-align:right;color:var(--gold2);font-size:14px;margin:14px 0 8px}
-.rsvp-input{display:block;width:100%;border:1px solid #82662f;border-radius:12px;background:#17190f;color:#f6e9c6;font:inherit;font-size:16px;padding:12px;margin-bottom:14px;direction:rtl}
-.rsvp-input:focus{outline:2px solid var(--gold);outline-offset:2px}textarea.rsvp-input{resize:vertical}
 </style>
 </head>
 <body>
@@ -70,31 +67,11 @@ body{min-height:100vh}
       <div class="unit"><div class="num" id="mins">--</div><div class="lbl">دقيقة</div></div>
       <div class="unit"><div class="num" id="secs">--</div><div class="lbl">ثانية</div></div>
     </div>
-    <section class="rsvp" id="rsvpSection">
-      <h2>تأكيد الحضور</h2>
-      <p class="note" id="sideLabel"></p>
-      <form id="rsvpForm">
-        <label class="rsvp-label" for="guestName">اسم الضيف</label>
-        <input class="rsvp-input" id="guestName" name="guestName" type="text" autocomplete="name" maxlength="200" required>
-        <label class="rsvp-label" for="guestPhone">رقم الجوال</label>
-        <input class="rsvp-input" id="guestPhone" name="guestPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required>
-        <div class="choices">
-          <button class="choice" data-rsvp="attend" type="button">سأحضر بإذن الله</button>
-          <button class="choice" data-rsvp="decline" type="button">أعتذر عن الحضور</button>
-        </div>
-        <label class="rsvp-label" for="companions">عدد المرافقين (اختياري)</label>
-        <input class="rsvp-input" id="companions" name="companions" type="number" min="0" step="1" inputmode="numeric">
-        <label class="rsvp-label" for="rsvpNotes">ملاحظات (اختياري)</label>
-        <textarea class="rsvp-input" id="rsvpNotes" name="rsvpNotes" rows="3" maxlength="2000"></textarea>
-        <button id="rsvpSubmit" class="btn secondary" type="submit">الموقع</button>
-        <p id="rsvpStatus" class="note" role="status" aria-live="polite"></p>
-      </form>
-      <div id="rsvpResult" class="rsvp" style="display:none;margin-top:16px;padding:0;background:none;border:none">
-        <div class="note" id="resultHeading" style="color:var(--gold2);font-weight:700;font-size:16px">تم تأكيد حضوركم 🎉</div>
-        <div id="resultLocation">
-          <div class="note" style="margin-top:16px">📍 صالة البريك 4 - الدمام</div>
-          <a class="btn" href="https://maps.app.goo.gl/LM5phJ75VYrs56Kf6?g_st=ic" target="_blank" rel="noopener noreferrer">📍 فتح الموقع في خرائط Google</a>
-        </div>
+    <section class="rsvp" id="rsvpSection" style="display:none">
+      <div id="rsvpResult" style="display:none">
+        <h2>📍 موقع الحفل</h2>
+        <div class="note" style="margin-top:0">صالة البريك 4 - الدمام</div>
+        <a class="btn" href="https://maps.app.goo.gl/LM5phJ75VYrs56Kf6?g_st=ic" target="_blank" rel="noopener noreferrer">📍 فتح الموقع في خرائط Google</a>
       </div>
       <div id="rsvpUnavailable" class="note" style="display:none">تعذر الاتصال بالخادم، يرجى المحاولة لاحقاً.</div>
     </section>
@@ -129,134 +106,49 @@ body{min-height:100vh}
   const target=new Date('2026-09-19T20:30:00+03:00').getTime();
   function tick(){let d=target-Date.now();if(d<=0){$('#countdown').innerHTML='<div class="small" style="color:var(--gold2)">حان وقت الحفل 🎉</div>';return}const day=Math.floor(d/86400000);d%=86400000;const h=Math.floor(d/3600000);d%=3600000;const m=Math.floor(d/60000);const s=Math.floor((d%60000)/1000);$('#days').textContent=day;$('#hours').textContent=String(h).padStart(2,'0');$('#mins').textContent=String(m).padStart(2,'0');$('#secs').textContent=String(s).padStart(2,'0')}
   tick();setInterval(tick,1000);
-  let rsvp='';
-  let sideEnabled=true;
-  if(guest) $('#guestName').value=guest;
-  if(urlSide) $('#sideLabel').textContent=urlSide==='groom'?'من طرف العريس':'من طرف العروس';
 
-  function hasAlreadyResponded(){
-    try{return urlSide&&localStorage.getItem('rsvp_done_'+urlSide)==='1'}catch(e){return false}
-  }
-  function wasAttending(){
-    try{return urlSide&&localStorage.getItem('rsvp_attending_'+urlSide)==='1'}catch(e){return false}
-  }
-  function markResponded(attending){
+  function getDeviceId(){
     try{
-      if(!urlSide) return;
-      localStorage.setItem('rsvp_done_'+urlSide,'1');
-      if(attending) localStorage.setItem('rsvp_attending_'+urlSide,'1');
-    }catch(e){}
-  }
-
-  function applySideVisibility(){
-    const section=$('#rsvpSection');
-    if(!urlSide){
-      section.style.display='none';
-      return;
-    }
-    if(hasAlreadyResponded()){
-      if(wasAttending()){
-        section.style.display='';
-        $('#rsvpForm').style.display='none';
-        $('#rsvpUnavailable').style.display='none';
-        $('#resultHeading').style.display='none';
-        $('#resultLocation').style.display='';
-        $('#rsvpResult').style.display='';
-      }else{
-        section.style.display='none';
+      let id=localStorage.getItem('device_id');
+      if(!id){
+        id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2));
+        localStorage.setItem('device_id',id);
       }
-      return;
-    }
-    section.style.display='';
-    if(!sideEnabled){
-      $('#rsvpForm').style.display='none';
-      $('#rsvpResult').style.display='none';
-      $('#rsvpUnavailable').style.display='';
-    }else{
-      $('#rsvpUnavailable').style.display='none';
-      $('#rsvpForm').style.display='';
-    }
+      return id;
+    }catch(e){return null}
   }
-  applySideVisibility();
 
-  async function refreshSideStatus(){
-    if(!supabase||!urlSide) return;
+  async function claimSlot(){
+    const section=$('#rsvpSection');
+    if(!urlSide||!supabase){section.style.display='none';return}
+    const deviceId=getDeviceId();
+    if(!deviceId){section.style.display='none';return}
     try{
-      const {data,error}=await supabase.from('side_status').select('enabled').eq('side',urlSide).maybeSingle();
-      if(error||!data) return;
-      sideEnabled=data.enabled!==false;
-      applySideVisibility();
-    }catch(e){}
-  }
-  refreshSideStatus();
-
-  document.querySelectorAll('[data-rsvp]').forEach(b=>{
-    b.setAttribute('aria-pressed','false');
-    b.addEventListener('click',()=>{
-      document.querySelectorAll('[data-rsvp]').forEach(x=>{x.classList.remove('active');x.setAttribute('aria-pressed','false')});
-      b.classList.add('active');b.setAttribute('aria-pressed','true');rsvp=b.dataset.rsvp;
-    });
-  });
-
-  $('#rsvpForm').addEventListener('submit',async e=>{
-    e.preventDefault();
-    const name=$('#guestName');name.value=name.value.trim();
-    const phone=$('#guestPhone');phone.value=phone.value.trim();
-    if(!name.value){name.reportValidity();name.focus();return}
-    if(!phone.value){phone.reportValidity();phone.focus();return}
-    if(!rsvp){showToast('فضلاً اختر الحضور أولاً');return}
-    if(!supabase||!urlSide){showToast('التسجيل غير متاح حالياً');return}
-    const submitBtn=$('#rsvpSubmit');
-    submitBtn.disabled=true;
-    $('#rsvpStatus').textContent='جارٍ إرسال الرد...';
-    try{
-      const companions=Math.max(0,parseInt($('#companions').value,10)||0);
-      const notes=$('#rsvpNotes').value.trim();
-      const {data,error}=await supabase.rpc('submit_rsvp',{
-        p_name:name.value,
-        p_side:urlSide,
-        p_attending:rsvp==='attend',
-        p_companions:companions,
-        p_notes:notes?notes:null,
-        p_phone:phone.value
-      });
-      if(error||!data||!data.ok){
-        if(data&&data.error==='side_full'){
-          $('#rsvpStatus').textContent='';
-        }else if(data&&data.error==='side_disabled'){
-          sideEnabled=false;
-          applySideVisibility();
-          $('#rsvpStatus').textContent='';
-        }else{
-          $('#rsvpStatus').textContent='';
-          showToast('تعذر إرسال الرد، حاول مرة أخرى');
-        }
-        submitBtn.disabled=false;
+      const {data,error}=await supabase.rpc('claim_link_slot',{p_side:urlSide,p_device_id:deviceId});
+      if(error||!data){
+        section.style.display='';
+        $('#rsvpResult').style.display='none';
+        $('#rsvpUnavailable').style.display='';
         return;
       }
-      markResponded(data.already_registered||data.attending);
-      if(data.already_registered){
-        $('#resultHeading').style.display='none';
-        $('#resultLocation').style.display='';
+      if(data.ok){
+        section.style.display='';
+        $('#rsvpUnavailable').style.display='none';
         $('#rsvpResult').style.display='';
-        $('#rsvpForm').style.display='none';
-      }else if(data.attending){
-        $('#resultHeading').style.display='';
-        $('#resultHeading').textContent='تم تأكيد حضوركم 🎉';
-        $('#resultLocation').style.display='';
-        $('#rsvpResult').style.display='';
-        $('#rsvpForm').style.display='none';
+      }else if(data.error==='side_full'){
+        section.style.display='none';
       }else{
-        $('#rsvpStatus').textContent='';
-        showToast('شكراً لتأكيد ردكم');
-        $('#rsvpSection').style.display='none';
+        section.style.display='';
+        $('#rsvpResult').style.display='none';
+        $('#rsvpUnavailable').style.display='';
       }
     }catch(e){
-      $('#rsvpStatus').textContent='';
-      showToast('تعذر إرسال الرد، تحقق من الاتصال');
-      submitBtn.disabled=false;
+      section.style.display='';
+      $('#rsvpResult').style.display='none';
+      $('#rsvpUnavailable').style.display='';
     }
-  });
+  }
+  claimSlot();
 })();
 </script>
 </body>

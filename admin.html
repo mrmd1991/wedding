@@ -132,6 +132,18 @@ tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
         <tbody id="rows"></tbody>
       </table>
     </div>
+
+    <h1 style="margin-top:34px">الأجهزة التي فتحت الرابط</h1>
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>الطرف</th><th>معرف الجهاز</th><th>تاريخ الفتح</th>
+          </tr>
+        </thead>
+        <tbody id="linkOpenRows"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -251,12 +263,23 @@ tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
     await loadCapacity();
   }
 
+  async function loadLinkOpens(){
+    const {data,error}=await supabase.from('link_opens').select('*').order('created_at',{ascending:false});
+    if(error){$('#linkOpenRows').innerHTML='';return}
+    $('#linkOpenRows').innerHTML=(data||[]).map(r=>`
+      <tr>
+        <td>${sideLabel[r.side]||r.side}</td>
+        <td style="direction:ltr;text-align:right">${escapeHtml(r.device_id)}</td>
+        <td>${new Date(r.created_at).toLocaleString('ar')}</td>
+      </tr>`).join('');
+  }
+
   async function showDashboard(session){
     $('#loginCard').hidden=true;
     $('#setPasswordCard').hidden=true;
     $('#dashboard').hidden=false;
     $('#whoami').textContent=session.user.email;
-    await Promise.all([loadRows(),loadCapacity()]);
+    await Promise.all([loadRows(),loadCapacity(),loadLinkOpens()]);
   }
 
   const hashParams=new URLSearchParams(location.hash.replace(/^#/,''));
@@ -301,7 +324,7 @@ tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
     location.reload();
   });
 
-  $('#refreshBtn').addEventListener('click',()=>Promise.all([loadRows(),loadCapacity()]));
+  $('#refreshBtn').addEventListener('click',()=>Promise.all([loadRows(),loadCapacity(),loadLinkOpens()]));
   $('#search').addEventListener('input',()=>render(allRows));
   $('#groomCapSave').addEventListener('click',()=>saveCapacity('groom'));
   $('#brideCapSave').addEventListener('click',()=>saveCapacity('bride'));

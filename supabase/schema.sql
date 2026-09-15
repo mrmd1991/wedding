@@ -44,6 +44,85 @@ create or replace view side_status as
 
 grant select on side_status to anon;
 
+-- Link-open based access: from here on, side_counts.used/capacity/enabled
+-- count DEVICES that have opened a side's link, not attendees. index.html no
+-- longer calls submit_rsvp() below - it calls claim_link_slot() on load. The
+-- old rsvps table/functions are left in place untouched (historical data,
+-- and admin.html still reads them), but nothing writes to rsvps anymore.
+-- Reset once so the new counter starts clean instead of carrying over old
+-- attendee-based numbers. Guarded so re-running this script later (e.g. to
+-- add another admin email) doesn't zero out real link_opens data again.
+do $$
+begin
+  if not exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'link_opens') then
+    update side_counts set used = 0;
+  end if;
+end $$;
+
+create table if not exists link_opens (
+  id uuid primary key default gen_random_uuid(),
+  device_id text not null,
+  side text not null check (side in ('groom','bride')),
+  created_at timestamptz not null default now(),
+  unique (device_id, side)
+);
+
+alter table link_opens enable row level security;
+grant select on link_opens to authenticated;
+
+drop policy if exists "admin can read link_opens" on link_opens;
+create policy "admin can read link_opens" on link_opens
+  for select to authenticated
+  using (coalesce(auth.jwt() ->> 'email', '') in ('qwas30000@gmail.com', 'md.ad.alnasser@gmail.com'));
+
+create or replace function claim_link_slot(p_side text, p_device_id text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_updated integer;
+begin
+  if p_side not in ('groom','bride') then
+    return jsonb_build_object('ok', false, 'error', 'invalid_side');
+  end if;
+
+  p_device_id := trim(coalesce(p_device_id, ''));
+  if length(p_device_id) = 0 then
+    return jsonb_build_object('ok', false, 'error', 'invalid_device');
+  end if;
+
+  -- already has a slot on this side: confirm again, don't consume another
+  if exists(select 1 from link_opens where device_id = p_device_id and side = p_side) then
+    return jsonb_build_object('ok', true, 'already_claimed', true);
+  end if;
+
+  if not coalesce((select enabled from side_counts where side = p_side), true) then
+    return jsonb_build_object('ok', false, 'error', 'side_disabled');
+  end if;
+
+  update side_counts
+    set used = used + 1
+    where side = p_side and used + 1 <= capacity;
+  get diagnostics v_updated = row_count;
+
+  if v_updated = 0 then
+    return jsonb_build_object('ok', false, 'error', 'side_full');
+  end if;
+
+  insert into link_opens (device_id, side) values (p_device_id, p_side);
+  return jsonb_build_object('ok', true, 'already_claimed', false);
+exception when others then
+  return jsonb_build_object('ok', false, 'error', 'server_error');
+end;
+$$;
+
+grant execute on function claim_link_slot(text, text) to anon;
+
+-- Everything below (generate_invite_code, submit_rsvp, and the admin CRUD
+-- on rsvps) is the old registration system. Kept for the existing admin.html
+-- guest list and any historical data; index.html no longer calls submit_rsvp.
 create or replace function generate_invite_code() returns text
 language plpgsql as $$
 declare
