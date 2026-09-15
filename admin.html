@@ -67,6 +67,16 @@ tr:hover td{background:rgba(217,182,111,.06)}
     <p class="err" id="loginErr"></p>
   </div>
 
+  <div id="setPasswordCard" class="card" style="max-width:360px;margin:60px auto 0" hidden>
+    <p class="note" style="color:var(--gold2);margin:0 0 14px;text-align:center">مرحباً، يرجى تعيين كلمة مرور لحسابك</p>
+    <label class="field" style="border:none;padding:0;margin-bottom:6px;background:none;color:var(--gold2);text-align:right">كلمة المرور الجديدة</label>
+    <input class="field" id="newPassword" type="password" autocomplete="new-password">
+    <label class="field" style="border:none;padding:0;margin-bottom:6px;background:none;color:var(--gold2);text-align:right">تأكيد كلمة المرور</label>
+    <input class="field" id="newPassword2" type="password" autocomplete="new-password">
+    <button class="btn" id="setPasswordBtn" type="button" style="width:100%">حفظ كلمة المرور والدخول</button>
+    <p class="err" id="setPasswordErr"></p>
+  </div>
+
   <div id="dashboard" hidden>
     <div class="topbar">
       <div id="whoami" style="color:#cbbf9c;font-size:13px"></div>
@@ -238,13 +248,37 @@ tr:hover td{background:rgba(217,182,111,.06)}
 
   async function showDashboard(session){
     $('#loginCard').hidden=true;
+    $('#setPasswordCard').hidden=true;
     $('#dashboard').hidden=false;
     $('#whoami').textContent=session.user.email;
     await Promise.all([loadRows(),loadCapacity()]);
   }
 
+  const hashParams=new URLSearchParams(location.hash.replace(/^#/,''));
+  const authType=hashParams.get('type');
+
   supabase.auth.getSession().then(({data})=>{
-    if(data.session) showDashboard(data.session);
+    if(!data.session) return;
+    if(authType==='invite'||authType==='recovery'){
+      history.replaceState(null,'',location.pathname+location.search);
+      $('#loginCard').hidden=true;
+      $('#setPasswordCard').hidden=false;
+    }else{
+      showDashboard(data.session);
+    }
+  });
+
+  $('#setPasswordBtn').addEventListener('click',async()=>{
+    const err=$('#setPasswordErr');
+    err.textContent='';
+    const p1=$('#newPassword').value;
+    const p2=$('#newPassword2').value;
+    if(p1.length<8){err.textContent='كلمة المرور يجب أن تكون 8 أحرف على الأقل';return}
+    if(p1!==p2){err.textContent='كلمتا المرور غير متطابقتين';return}
+    const {error}=await supabase.auth.updateUser({password:p1});
+    if(error){err.textContent='تعذر الحفظ، حاول مرة أخرى';return}
+    const {data:sessionData}=await supabase.auth.getSession();
+    if(sessionData.session) showDashboard(sessionData.session);
   });
 
   $('#loginBtn').addEventListener('click',async()=>{
