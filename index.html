@@ -102,8 +102,8 @@ body{min-height:100vh}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (function(){
-  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const SUPABASE_URL = 'https://anbszfoqttndggebeupo.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFuYnN6Zm9xdHRuZGdnZWJldXBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0MjI3NjgsImV4cCI6MjEwNDk5ODc2OH0.ADnaz0SlGMCsrg9gN4ZLYiDebtc2soK2IgGvTaWvjaA';
   const supabase = (SUPABASE_URL.startsWith('http')) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
   const $=s=>document.querySelector(s);
   const music=$('#bgMusic'), splash=$('#splash'), openBtn=$('#openBtn'), musicBtn=$('#musicBtn'), toast=$('#toast');

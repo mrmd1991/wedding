@@ -40,18 +40,18 @@ create or replace function generate_invite_code() returns text
 language plpgsql as $$
 declare
   chars text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  code text;
+  v_code text;
   taken boolean;
 begin
   loop
-    code := '';
+    v_code := '';
     for i in 1..6 loop
-      code := code || substr(chars, (floor(random() * length(chars)) + 1)::int, 1);
+      v_code := v_code || substr(chars, (floor(random() * length(chars)) + 1)::int, 1);
     end loop;
-    select exists(select 1 from rsvps where rsvps.code = code) into taken;
+    select exists(select 1 from rsvps where rsvps.code = v_code) into taken;
     exit when not taken;
   end loop;
-  return code;
+  return v_code;
 end;
 $$;
 
