@@ -77,6 +77,8 @@ body{min-height:100vh}
       <form id="rsvpForm">
         <label class="rsvp-label" for="guestName">اسم الضيف</label>
         <input class="rsvp-input" id="guestName" name="guestName" type="text" autocomplete="name" maxlength="200" required>
+        <label class="rsvp-label" for="guestPhone">رقم الجوال</label>
+        <input class="rsvp-input" id="guestPhone" name="guestPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required>
         <div class="choices">
           <button class="choice" data-rsvp="attend" type="button">سأحضر بإذن الله</button>
           <button class="choice" data-rsvp="decline" type="button">أعتذر عن الحضور</button>
@@ -89,7 +91,7 @@ body{min-height:100vh}
         <p id="rsvpStatus" class="note" role="status" aria-live="polite"></p>
       </form>
       <div id="rsvpResult" class="rsvp" style="display:none;margin-top:16px;padding:0;background:none;border:none">
-        <div class="note" style="color:var(--gold2);font-weight:700;font-size:16px">تم تأكيد حضوركم 🎉</div>
+        <div class="note" id="resultHeading" style="color:var(--gold2);font-weight:700;font-size:16px">تم تأكيد حضوركم 🎉</div>
         <div class="code-box" id="codeBox"></div>
         <div class="note">يرجى حفظ هذا الرمز، قد يُطلب منكم إبرازه عند الحضور.</div>
         <button id="copyCodeBtn" class="btn secondary" type="button">نسخ الرمز</button>
@@ -130,7 +132,6 @@ body{min-height:100vh}
   function tick(){let d=target-Date.now();if(d<=0){$('#countdown').innerHTML='<div class="small" style="color:var(--gold2)">حان وقت الحفل 🎉</div>';return}const day=Math.floor(d/86400000);d%=86400000;const h=Math.floor(d/3600000);d%=3600000;const m=Math.floor(d/60000);const s=Math.floor((d%60000)/1000);$('#days').textContent=day;$('#hours').textContent=String(h).padStart(2,'0');$('#mins').textContent=String(m).padStart(2,'0');$('#secs').textContent=String(s).padStart(2,'0')}
   tick();setInterval(tick,1000);
   let rsvp='';
-  let sideFull=false;
   let sideEnabled=true;
   if(guest) $('#guestName').value=guest;
   if(urlSide) $('#sideLabel').textContent=urlSide==='groom'?'من طرف العريس':'من طرف العروس';
@@ -144,7 +145,7 @@ body{min-height:100vh}
 
   function applySideVisibility(){
     const section=$('#rsvpSection');
-    if(!urlSide||sideFull||hasAlreadyResponded()){
+    if(!urlSide||hasAlreadyResponded()){
       section.style.display='none';
       return;
     }
@@ -163,9 +164,8 @@ body{min-height:100vh}
   async function refreshSideStatus(){
     if(!supabase||!urlSide) return;
     try{
-      const {data,error}=await supabase.from('side_status').select('is_full,enabled').eq('side',urlSide).maybeSingle();
+      const {data,error}=await supabase.from('side_status').select('enabled').eq('side',urlSide).maybeSingle();
       if(error||!data) return;
-      sideFull=!!data.is_full;
       sideEnabled=data.enabled!==false;
       applySideVisibility();
     }catch(e){}
@@ -187,7 +187,9 @@ body{min-height:100vh}
   $('#rsvpForm').addEventListener('submit',async e=>{
     e.preventDefault();
     const name=$('#guestName');name.value=name.value.trim();
+    const phone=$('#guestPhone');phone.value=phone.value.trim();
     if(!name.value){name.reportValidity();name.focus();return}
+    if(!phone.value){phone.reportValidity();phone.focus();return}
     if(!rsvp){showToast('فضلاً اختر الحضور أولاً');return}
     if(!supabase||!urlSide){showToast('التسجيل غير متاح حالياً');return}
     const submitBtn=$('#rsvpSubmit');
@@ -201,11 +203,11 @@ body{min-height:100vh}
         p_side:urlSide,
         p_attending:rsvp==='attend',
         p_companions:companions,
-        p_notes:notes?notes:null
+        p_notes:notes?notes:null,
+        p_phone:phone.value
       });
       if(error||!data||!data.ok){
         if(data&&data.error==='side_full'){
-          await refreshSideStatus();
           $('#rsvpStatus').textContent='';
         }else if(data&&data.error==='side_disabled'){
           sideEnabled=false;
@@ -219,7 +221,13 @@ body{min-height:100vh}
         return;
       }
       markResponded();
-      if(data.attending){
+      if(data.already_registered){
+        $('#resultHeading').textContent='أنتم مسجلون بالفعل 👋';
+        $('#codeBox').textContent=data.code;
+        $('#rsvpResult').style.display='';
+        $('#rsvpForm').style.display='none';
+      }else if(data.attending){
+        $('#resultHeading').textContent='تم تأكيد حضوركم 🎉';
         $('#codeBox').textContent=data.code;
         $('#rsvpResult').style.display='';
         $('#rsvpForm').style.display='none';

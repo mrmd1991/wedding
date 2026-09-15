@@ -95,7 +95,7 @@ tr:hover td{background:rgba(217,182,111,.06)}
       <table>
         <thead>
           <tr>
-            <th>الاسم</th><th>الطرف</th><th>الحضور</th><th>المرافقون</th><th>الرمز</th><th>ملاحظات</th><th>التاريخ</th>
+            <th>الاسم</th><th>الجوال</th><th>الطرف</th><th>الحضور</th><th>المرافقون</th><th>الرمز</th><th>ملاحظات</th><th>التاريخ</th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
@@ -117,10 +117,11 @@ tr:hover td{background:rgba(217,182,111,.06)}
 
   function render(rows){
     const q=$('#search').value.trim().toLowerCase();
-    const filtered=q?rows.filter(r=>(r.guest_name||'').toLowerCase().includes(q)):rows;
+    const filtered=q?rows.filter(r=>(r.guest_name||'').toLowerCase().includes(q)||(r.phone||'').toLowerCase().includes(q)):rows;
     $('#rows').innerHTML=filtered.map(r=>`
       <tr>
         <td>${escapeHtml(r.guest_name)}</td>
+        <td style="direction:ltr;text-align:right">${escapeHtml(r.phone||'')}</td>
         <td>${sideLabel[r.side]||r.side}</td>
         <td>${r.attending?'<span class="tag yes">حاضر</span>':'<span class="tag no">معتذر</span>'}</td>
         <td>${r.companions}</td>
@@ -211,7 +212,7 @@ tr:hover td{background:rgba(217,182,111,.06)}
   $('#brideToggle').addEventListener('click',()=>toggleEnabled('bride'));
 
   $('#exportBtn').addEventListener('click',()=>{
-    const header=['guest_name','side','attending','companions','code','notes','created_at'];
+    const header=['guest_name','phone','side','attending','companions','code','notes','created_at'];
     const lines=[header.join(',')].concat(allRows.map(r=>header.map(h=>{
       const v=r[h]==null?'':String(r[h]).replace(/"/g,'""');
       return /[",\n]/.test(v)?`"${v}"`:v;

@@ -25,8 +25,11 @@ create table if not exists rsvps (
   attending boolean not null,
   companions integer not null default 0 check (companions >= 0),
   notes text,
-  code text unique
+  code text unique,
+  phone text
 );
+
+alter table rsvps add column if not exists phone text;
 
 alter table side_counts enable row level security;
 alter table rsvps enable row level security;
@@ -62,12 +65,15 @@ revoke all on function generate_invite_code() from public;
 
 -- Single entry point the page calls. security definer + no anon grants on the
 -- tables above means capacity can't be bypassed or tampered with from the client.
+drop function if exists submit_rsvp(text, text, boolean, integer, text);
+
 create or replace function submit_rsvp(
   p_name text,
   p_side text,
   p_attending boolean,
   p_companions integer,
-  p_notes text
+  p_notes text,
+  p_phone text
 ) returns jsonb
 language plpgsql
 security definer
@@ -78,6 +84,7 @@ declare
   v_code text;
   v_updated integer;
   v_enabled boolean;
+  v_existing_code text;
 begin
   if p_side not in ('groom','bride') then
     return jsonb_build_object('ok', false, 'error', 'invalid_side');
@@ -88,6 +95,23 @@ begin
     return jsonb_build_object('ok', false, 'error', 'side_disabled');
   end if;
 
+  p_phone := trim(coalesce(p_phone, ''));
+  if length(p_phone) = 0 then
+    return jsonb_build_object('ok', false, 'error', 'invalid_phone');
+  end if;
+
+  -- Returning guest: same phone already has a confirmed spot on this side.
+  -- Hand back their existing code/location instead of registering again.
+  select code into v_existing_code
+    from rsvps
+    where side = p_side and phone = p_phone and attending = true
+    order by created_at desc
+    limit 1;
+
+  if v_existing_code is not null then
+    return jsonb_build_object('ok', true, 'already_registered', true, 'attending', true, 'code', v_existing_code);
+  end if;
+
   p_name := trim(coalesce(p_name, ''));
   if length(p_name) = 0 then
     return jsonb_build_object('ok', false, 'error', 'invalid_name');
@@ -96,8 +120,8 @@ begin
   p_companions := greatest(coalesce(p_companions, 0), 0);
 
   if not p_attending then
-    insert into rsvps (guest_name, side, attending, companions, notes)
-    values (p_name, p_side, false, p_companions, p_notes);
+    insert into rsvps (guest_name, side, attending, companions, notes, phone)
+    values (p_name, p_side, false, p_companions, p_notes, p_phone);
     return jsonb_build_object('ok', true, 'attending', false);
   end if;
 
@@ -113,8 +137,8 @@ begin
   end if;
 
   v_code := generate_invite_code();
-  insert into rsvps (guest_name, side, attending, companions, notes, code)
-  values (p_name, p_side, true, p_companions, p_notes, v_code);
+  insert into rsvps (guest_name, side, attending, companions, notes, code, phone)
+  values (p_name, p_side, true, p_companions, p_notes, v_code, p_phone);
 
   return jsonb_build_object('ok', true, 'attending', true, 'code', v_code);
 exception when others then
@@ -122,7 +146,7 @@ exception when others then
 end;
 $$;
 
-grant execute on function submit_rsvp(text, text, boolean, integer, text) to anon;
+grant execute on function submit_rsvp(text, text, boolean, integer, text, text) to anon;
 
 -- Admin access for admin.html. Lets one signed-in Supabase Auth user read
 -- the guest list; RLS still blocks everyone else (including anon) from
