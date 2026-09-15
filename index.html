@@ -29,7 +29,6 @@ body{min-height:100vh}
 .rsvp-label{display:block;text-align:right;color:var(--gold2);font-size:14px;margin:14px 0 8px}
 .rsvp-input{display:block;width:100%;border:1px solid #82662f;border-radius:12px;background:#17190f;color:#f6e9c6;font:inherit;font-size:16px;padding:12px;margin-bottom:14px;direction:rtl}
 .rsvp-input:focus{outline:2px solid var(--gold);outline-offset:2px}textarea.rsvp-input{resize:vertical}
-.code-box{font-size:30px;letter-spacing:8px;font-weight:900;color:var(--gold2);background:rgba(217,182,111,.12);border:1px solid var(--gold);border-radius:14px;padding:16px;margin:14px 0;direction:ltr;text-align:center}
 </style>
 </head>
 <body>
@@ -91,12 +90,7 @@ body{min-height:100vh}
         <p id="rsvpStatus" class="note" role="status" aria-live="polite"></p>
       </form>
       <div id="rsvpResult" class="rsvp" style="display:none;margin-top:16px;padding:0;background:none;border:none">
-        <div id="resultCode">
-          <div class="note" id="resultHeading" style="color:var(--gold2);font-weight:700;font-size:16px">تم تأكيد حضوركم 🎉</div>
-          <div class="code-box" id="codeBox"></div>
-          <div class="note">يرجى حفظ هذا الرمز، قد يُطلب منكم إبرازه عند الحضور.</div>
-          <button id="copyCodeBtn" class="btn secondary" type="button">نسخ الرمز</button>
-        </div>
+        <div class="note" id="resultHeading" style="color:var(--gold2);font-weight:700;font-size:16px">تم تأكيد حضوركم 🎉</div>
         <div id="resultLocation">
           <div class="note" style="margin-top:16px">📍 صالة البريك 4 - الدمام</div>
           <a class="btn" href="https://maps.app.goo.gl/LM5phJ75VYrs56Kf6?g_st=ic" target="_blank" rel="noopener noreferrer">📍 فتح الموقع في خرائط Google</a>
@@ -184,10 +178,6 @@ body{min-height:100vh}
     });
   });
 
-  $('#copyCodeBtn').addEventListener('click',async()=>{
-    try{await navigator.clipboard.writeText($('#codeBox').textContent.trim());showToast('تم نسخ الرمز')}catch(e){}
-  });
-
   $('#rsvpForm').addEventListener('submit',async e=>{
     e.preventDefault();
     const name=$('#guestName');name.value=name.value.trim();
@@ -226,14 +216,13 @@ body{min-height:100vh}
       }
       markResponded();
       if(data.already_registered){
-        $('#resultCode').style.display='none';
+        $('#resultHeading').style.display='none';
         $('#resultLocation').style.display='';
         $('#rsvpResult').style.display='';
         $('#rsvpForm').style.display='none';
       }else if(data.attending){
-        $('#resultCode').style.display='';
+        $('#resultHeading').style.display='';
         $('#resultHeading').textContent='تم تأكيد حضوركم 🎉';
-        $('#codeBox').textContent=data.code;
         $('#resultLocation').style.display='';
         $('#rsvpResult').style.display='';
         $('#rsvpForm').style.display='none';
