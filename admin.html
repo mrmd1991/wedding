@@ -138,7 +138,7 @@ tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
       <table>
         <thead>
           <tr>
-            <th>الطرف</th><th>معرف الجهاز</th><th>تاريخ الفتح</th>
+            <th>الطرف</th><th>معرف الجهاز</th><th>الحالة</th><th>تاريخ الفتح</th>
           </tr>
         </thead>
         <tbody id="linkOpenRows"></tbody>
@@ -263,13 +263,16 @@ tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
     await loadCapacity();
   }
 
+  const rejectReasonLabel={side_full:'مرفوض (اكتمال العدد)',side_disabled:'مرفوض (الرابط متوقف)'};
+
   async function loadLinkOpens(){
     const {data,error}=await supabase.from('link_opens').select('*').order('created_at',{ascending:false});
     if(error){$('#linkOpenRows').innerHTML='';return}
     $('#linkOpenRows').innerHTML=(data||[]).map(r=>`
-      <tr>
+      <tr class="${r.granted?'':'rejectedRow'}">
         <td>${sideLabel[r.side]||r.side}</td>
         <td style="direction:ltr;text-align:right">${escapeHtml(r.device_id)}</td>
+        <td>${r.granted?'<span class="tag yes">مسموح</span>':'<span class="tag full">'+(rejectReasonLabel[r.reason]||'مرفوض')+'</span>'}</td>
         <td>${new Date(r.created_at).toLocaleString('ar')}</td>
       </tr>`).join('');
   }

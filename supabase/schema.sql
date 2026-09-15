@@ -67,6 +67,14 @@ create table if not exists link_opens (
   unique (device_id, side)
 );
 
+-- granted: whether this device currently holds a real slot (counted in
+-- side_counts.used). reason: why a non-granted row was rejected, so the
+-- admin device list can show it (side_full / side_disabled). A rejected
+-- device that tries again later and succeeds updates its existing row
+-- in place rather than inserting a duplicate (see claim_link_slot below).
+alter table link_opens add column if not exists granted boolean not null default true;
+alter table link_opens add column if not exists reason text;
+
 alter table link_opens enable row level security;
 grant select on link_opens to authenticated;
 
@@ -83,6 +91,7 @@ set search_path = public
 as $$
 declare
   v_updated integer;
+  v_granted boolean;
 begin
   if p_side not in ('groom','bride') then
     return jsonb_build_object('ok', false, 'error', 'invalid_side');
@@ -93,12 +102,15 @@ begin
     return jsonb_build_object('ok', false, 'error', 'invalid_device');
   end if;
 
-  -- already has a slot on this side: confirm again, don't consume another
-  if exists(select 1 from link_opens where device_id = p_device_id and side = p_side) then
+  -- already granted a slot on this side: confirm again, don't consume another
+  select granted into v_granted from link_opens where device_id = p_device_id and side = p_side;
+  if v_granted then
     return jsonb_build_object('ok', true, 'already_claimed', true);
   end if;
 
   if not coalesce((select enabled from side_counts where side = p_side), true) then
+    insert into link_opens (device_id, side, granted, reason) values (p_device_id, p_side, false, 'side_disabled')
+      on conflict (device_id, side) do update set reason = excluded.reason, created_at = now();
     return jsonb_build_object('ok', false, 'error', 'side_disabled');
   end if;
 
@@ -108,10 +120,13 @@ begin
   get diagnostics v_updated = row_count;
 
   if v_updated = 0 then
+    insert into link_opens (device_id, side, granted, reason) values (p_device_id, p_side, false, 'side_full')
+      on conflict (device_id, side) do update set reason = excluded.reason, created_at = now();
     return jsonb_build_object('ok', false, 'error', 'side_full');
   end if;
 
-  insert into link_opens (device_id, side) values (p_device_id, p_side);
+  insert into link_opens (device_id, side, granted, reason) values (p_device_id, p_side, true, null)
+    on conflict (device_id, side) do update set granted = true, reason = null, created_at = now();
   return jsonb_build_object('ok', true, 'already_claimed', false);
 exception when others then
   return jsonb_build_object('ok', false, 'error', 'server_error');
