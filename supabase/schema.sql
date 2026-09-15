@@ -208,3 +208,164 @@ end;
 $$;
 
 grant execute on function admin_set_enabled(text, boolean) to authenticated;
+
+-- Admin CRUD on the guest list (admin.html). Each function re-checks the
+-- admin email itself, same as the functions above, and keeps side_counts.used
+-- consistent with whatever attending/companions/side end up being true.
+create or replace function admin_add_rsvp(
+  p_name text,
+  p_phone text,
+  p_side text,
+  p_attending boolean,
+  p_companions integer,
+  p_notes text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_party_size integer;
+  v_code text;
+  v_updated integer;
+begin
+  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+    return jsonb_build_object('ok', false, 'error', 'forbidden');
+  end if;
+  if p_side not in ('groom','bride') then
+    return jsonb_build_object('ok', false, 'error', 'invalid_side');
+  end if;
+
+  p_name := trim(coalesce(p_name, ''));
+  if length(p_name) = 0 then
+    return jsonb_build_object('ok', false, 'error', 'invalid_name');
+  end if;
+
+  p_companions := greatest(coalesce(p_companions, 0), 0);
+  p_phone := nullif(trim(coalesce(p_phone, '')), '');
+
+  if not p_attending then
+    insert into rsvps (guest_name, side, attending, companions, notes, phone)
+    values (p_name, p_side, false, p_companions, p_notes, p_phone);
+    return jsonb_build_object('ok', true);
+  end if;
+
+  v_party_size := 1 + p_companions;
+  update side_counts
+    set used = used + v_party_size
+    where side = p_side and used + v_party_size <= capacity;
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    return jsonb_build_object('ok', false, 'error', 'side_full');
+  end if;
+
+  v_code := generate_invite_code();
+  insert into rsvps (guest_name, side, attending, companions, notes, code, phone)
+  values (p_name, p_side, true, p_companions, p_notes, v_code, p_phone);
+
+  return jsonb_build_object('ok', true, 'code', v_code);
+end;
+$$;
+
+grant execute on function admin_add_rsvp(text, text, text, boolean, integer, text) to authenticated;
+
+create or replace function admin_update_rsvp(
+  p_id uuid,
+  p_name text,
+  p_phone text,
+  p_side text,
+  p_attending boolean,
+  p_companions integer,
+  p_notes text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_old rsvps%rowtype;
+  v_new_party integer;
+  v_updated integer;
+begin
+  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+    return jsonb_build_object('ok', false, 'error', 'forbidden');
+  end if;
+  if p_side not in ('groom','bride') then
+    return jsonb_build_object('ok', false, 'error', 'invalid_side');
+  end if;
+
+  p_name := trim(coalesce(p_name, ''));
+  if length(p_name) = 0 then
+    return jsonb_build_object('ok', false, 'error', 'invalid_name');
+  end if;
+
+  p_companions := greatest(coalesce(p_companions, 0), 0);
+  p_phone := nullif(trim(coalesce(p_phone, '')), '');
+
+  select * into v_old from rsvps where id = p_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'not_found');
+  end if;
+
+  if v_old.attending then
+    update side_counts set used = greatest(used - (1 + v_old.companions), 0) where side = v_old.side;
+  end if;
+
+  if p_attending then
+    v_new_party := 1 + p_companions;
+    update side_counts
+      set used = used + v_new_party
+      where side = p_side and used + v_new_party <= capacity;
+    get diagnostics v_updated = row_count;
+    if v_updated = 0 then
+      if v_old.attending then
+        update side_counts set used = used + (1 + v_old.companions) where side = v_old.side;
+      end if;
+      return jsonb_build_object('ok', false, 'error', 'side_full');
+    end if;
+  end if;
+
+  update rsvps set
+    guest_name = p_name,
+    phone = p_phone,
+    side = p_side,
+    attending = p_attending,
+    companions = p_companions,
+    notes = p_notes,
+    code = case when p_attending and code is null then generate_invite_code() else code end
+  where id = p_id;
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+grant execute on function admin_update_rsvp(uuid, text, text, text, boolean, integer, text) to authenticated;
+
+create or replace function admin_delete_rsvp(p_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_old rsvps%rowtype;
+begin
+  if auth.jwt() ->> 'email' is distinct from 'qwas30000@gmail.com' then
+    return jsonb_build_object('ok', false, 'error', 'forbidden');
+  end if;
+
+  select * into v_old from rsvps where id = p_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'not_found');
+  end if;
+
+  if v_old.attending then
+    update side_counts set used = greatest(used - (1 + v_old.companions), 0) where side = v_old.side;
+  end if;
+
+  delete from rsvps where id = p_id;
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+grant execute on function admin_delete_rsvp(uuid) to authenticated;

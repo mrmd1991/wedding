@@ -42,6 +42,16 @@ tr:hover td{background:rgba(217,182,111,.06)}
 .toggleBtn{display:block;width:100%;margin-top:10px;border-radius:10px;border:1px solid;padding:8px;font-size:13px;font-weight:700;cursor:pointer;font:inherit}
 .toggleBtn.on{background:rgba(120,200,120,.14);border-color:#5a8a5a;color:#9fe0a0}
 .toggleBtn.off{background:rgba(200,120,120,.14);border-color:#8a5a5a;color:#e5a3a3}
+.sideTabs{display:flex;gap:6px}
+.sideTab{padding:9px 14px;border-radius:10px;border:1px solid #82662f;background:#17190f;color:#cbbf9c;cursor:pointer;font:inherit;font-size:14px}
+.sideTab.active{border-color:var(--gold);color:var(--gold2);background:#26210f}
+.rowBtn{padding:5px 10px;font-size:12px;border-radius:8px;border:1px solid var(--gold);background:transparent;color:var(--gold2);cursor:pointer;font:inherit;margin-inline-end:4px}
+.rowBtn.danger{border-color:#8a5a5a;color:#e5a3a3}
+.modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}
+.modalBox{background:var(--card);border:1px solid rgba(217,182,111,.5);border-radius:16px;padding:22px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto}
+.modalBox h3{color:var(--gold2);margin:0 0 14px}
+.modalRow{display:flex;gap:10px}
+.modalRow .field{flex:1}
 </style>
 </head>
 <body>
@@ -88,19 +98,60 @@ tr:hover td{background:rgba(217,182,111,.06)}
       </div>
     </div>
     <div class="toolbar">
-      <input class="field" id="search" type="text" placeholder="بحث بالاسم...">
+      <div class="sideTabs">
+        <button class="sideTab active" id="filterAll" type="button" data-side="">الكل</button>
+        <button class="sideTab" id="filterGroom" type="button" data-side="groom">طرف العريس</button>
+        <button class="sideTab" id="filterBride" type="button" data-side="bride">طرف العروس</button>
+      </div>
+      <input class="field" id="search" type="text" placeholder="بحث بالاسم أو الجوال...">
       <button class="btn secondary" id="refreshBtn" type="button">تحديث</button>
+      <button class="btn" id="addBtn" type="button">إضافة ضيف</button>
     </div>
     <div class="tableWrap">
       <table>
         <thead>
           <tr>
-            <th>الاسم</th><th>الجوال</th><th>الطرف</th><th>الحضور</th><th>المرافقون</th><th>الرمز</th><th>ملاحظات</th><th>التاريخ</th>
+            <th>الاسم</th><th>الجوال</th><th>الطرف</th><th>الحضور</th><th>المرافقون</th><th>الرمز</th><th>ملاحظات</th><th>التاريخ</th><th>إجراءات</th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<div id="editModal" class="modalOverlay" hidden>
+  <div class="modalBox">
+    <h3 id="modalTitle">إضافة ضيف</h3>
+    <label class="rsvp-label" style="color:var(--gold2);display:block;margin-bottom:6px">الاسم</label>
+    <input class="field" id="editName">
+    <label class="rsvp-label" style="color:var(--gold2);display:block;margin-bottom:6px">الجوال</label>
+    <input class="field" id="editPhone">
+    <div class="modalRow">
+      <div>
+        <label class="rsvp-label" style="color:var(--gold2);display:block;margin-bottom:6px">الطرف</label>
+        <select class="field" id="editSide">
+          <option value="groom">العريس</option>
+          <option value="bride">العروس</option>
+        </select>
+      </div>
+      <div>
+        <label class="rsvp-label" style="color:var(--gold2);display:block;margin-bottom:6px">الحضور</label>
+        <select class="field" id="editAttending">
+          <option value="true">حاضر</option>
+          <option value="false">معتذر</option>
+        </select>
+      </div>
+    </div>
+    <label class="rsvp-label" style="color:var(--gold2);display:block;margin-bottom:6px">عدد المرافقين</label>
+    <input class="field" id="editCompanions" type="number" min="0" step="1">
+    <label class="rsvp-label" style="color:var(--gold2);display:block;margin-bottom:6px">ملاحظات</label>
+    <textarea class="field" id="editNotes" rows="3"></textarea>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn" id="modalSave" type="button">حفظ</button>
+      <button class="btn secondary" id="modalCancel" type="button">إلغاء</button>
+    </div>
+    <p class="capMsg" id="modalMsg"></p>
   </div>
 </div>
 
@@ -112,12 +163,15 @@ tr:hover td{background:rgba(217,182,111,.06)}
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $=s=>document.querySelector(s);
   let allRows=[];
+  let sideFilter='';
+  let editingId=null;
 
   const sideLabel={groom:'العريس',bride:'العروس'};
 
   function render(rows){
     const q=$('#search').value.trim().toLowerCase();
-    const filtered=q?rows.filter(r=>(r.guest_name||'').toLowerCase().includes(q)||(r.phone||'').toLowerCase().includes(q)):rows;
+    let filtered=sideFilter?rows.filter(r=>r.side===sideFilter):rows;
+    if(q) filtered=filtered.filter(r=>(r.guest_name||'').toLowerCase().includes(q)||(r.phone||'').toLowerCase().includes(q));
     $('#rows').innerHTML=filtered.map(r=>`
       <tr>
         <td>${escapeHtml(r.guest_name)}</td>
@@ -128,6 +182,10 @@ tr:hover td{background:rgba(217,182,111,.06)}
         <td style="direction:ltr;text-align:right">${r.code||''}</td>
         <td>${escapeHtml(r.notes||'')}</td>
         <td>${new Date(r.created_at).toLocaleString('ar')}</td>
+        <td style="white-space:nowrap">
+          <button class="rowBtn" type="button" data-edit="${r.id}">تعديل</button>
+          <button class="rowBtn danger" type="button" data-delete="${r.id}">حذف</button>
+        </td>
       </tr>`).join('');
   }
 
@@ -210,6 +268,83 @@ tr:hover td{background:rgba(217,182,111,.06)}
   $('#brideCapSave').addEventListener('click',()=>saveCapacity('bride'));
   $('#groomToggle').addEventListener('click',()=>toggleEnabled('groom'));
   $('#brideToggle').addEventListener('click',()=>toggleEnabled('bride'));
+
+  document.querySelectorAll('.sideTab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      document.querySelectorAll('.sideTab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      sideFilter=tab.dataset.side;
+      render(allRows);
+    });
+  });
+
+  function openModal(row){
+    editingId=row?row.id:null;
+    $('#modalTitle').textContent=row?'تعديل ضيف':'إضافة ضيف';
+    $('#editName').value=row?row.guest_name:'';
+    $('#editPhone').value=row?(row.phone||''):'';
+    $('#editSide').value=row?row.side:(sideFilter||'groom');
+    $('#editAttending').value=row?String(row.attending):'true';
+    $('#editCompanions').value=row?row.companions:0;
+    $('#editNotes').value=row?(row.notes||''):'';
+    $('#modalMsg').textContent='';
+    $('#editModal').hidden=false;
+  }
+  function closeModal(){$('#editModal').hidden=true}
+
+  $('#addBtn').addEventListener('click',()=>openModal(null));
+  $('#modalCancel').addEventListener('click',closeModal);
+
+  $('#rows').addEventListener('click',e=>{
+    const editId=e.target.dataset.edit;
+    const deleteId=e.target.dataset.delete;
+    if(editId){
+      const row=allRows.find(r=>r.id===editId);
+      if(row) openModal(row);
+    }else if(deleteId){
+      deleteGuest(deleteId);
+    }
+  });
+
+  async function deleteGuest(id){
+    if(!confirm('حذف هذا الضيف نهائياً؟')) return;
+    const {data,error}=await supabase.rpc('admin_delete_rsvp',{p_id:id});
+    if(error||!data||!data.ok){alert('تعذر الحذف');return}
+    await Promise.all([loadRows(),loadCapacity()]);
+  }
+
+  $('#modalSave').addEventListener('click',async()=>{
+    const msg=$('#modalMsg');
+    const name=$('#editName').value.trim();
+    const phone=$('#editPhone').value.trim();
+    const side=$('#editSide').value;
+    const attending=$('#editAttending').value==='true';
+    const companions=Math.max(0,parseInt($('#editCompanions').value,10)||0);
+    const notes=$('#editNotes').value.trim();
+    if(!name){msg.textContent='الاسم مطلوب';msg.className='capMsg err';return}
+    msg.textContent='...';msg.className='capMsg';
+
+    let result;
+    if(editingId){
+      result=await supabase.rpc('admin_update_rsvp',{
+        p_id:editingId,p_name:name,p_phone:phone,p_side:side,
+        p_attending:attending,p_companions:companions,p_notes:notes||null
+      });
+    }else{
+      result=await supabase.rpc('admin_add_rsvp',{
+        p_name:name,p_phone:phone,p_side:side,
+        p_attending:attending,p_companions:companions,p_notes:notes||null
+      });
+    }
+    const {data,error}=result;
+    if(error||!data||!data.ok){
+      const reason=data&&data.error==='side_full'?'الطرف المختار ممتلئ':'تعذر الحفظ';
+      msg.textContent=reason;msg.className='capMsg err';
+      return;
+    }
+    closeModal();
+    await Promise.all([loadRows(),loadCapacity()]);
+  });
 
   $('#exportBtn').addEventListener('click',()=>{
     const header=['guest_name','phone','side','attending','companions','code','notes','created_at'];
