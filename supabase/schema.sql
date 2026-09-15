@@ -26,10 +26,12 @@ create table if not exists rsvps (
   companions integer not null default 0 check (companions >= 0),
   notes text,
   code text unique,
-  phone text
+  phone text,
+  capacity_rejected boolean not null default false
 );
 
 alter table rsvps add column if not exists phone text;
+alter table rsvps add column if not exists capacity_rejected boolean not null default false;
 
 alter table side_counts enable row level security;
 alter table rsvps enable row level security;
@@ -133,6 +135,8 @@ begin
   get diagnostics v_updated = row_count;
 
   if v_updated = 0 then
+    insert into rsvps (guest_name, side, attending, companions, notes, phone, capacity_rejected)
+    values (p_name, p_side, false, p_companions, p_notes, p_phone, true);
     return jsonb_build_object('ok', false, 'error', 'side_full');
   end if;
 

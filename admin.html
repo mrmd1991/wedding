@@ -31,8 +31,11 @@ tr:hover td{background:rgba(217,182,111,.06)}
 .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px}
 .tag.yes{background:rgba(120,200,120,.18);color:#9fe0a0}
 .tag.no{background:rgba(200,120,120,.18);color:#e5a3a3}
+.tag.full{background:rgba(217,182,111,.2);color:var(--gold2)}
 tr.declinedRow td{background:rgba(200,120,120,.07);color:#d9b3b3}
 tr.declinedRow:hover td{background:rgba(200,120,120,.12)}
+tr.rejectedRow td{background:rgba(217,182,111,.09);color:#e0cfa0}
+tr.rejectedRow:hover td{background:rgba(217,182,111,.15)}
 .tableWrap{overflow-x:auto}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap}
 .capEdit{display:flex;gap:6px;margin-top:10px}
@@ -185,11 +188,11 @@ tr.declinedRow:hover td{background:rgba(200,120,120,.12)}
     let filtered=sideFilter?rows.filter(r=>r.side===sideFilter):rows;
     if(q) filtered=filtered.filter(r=>(r.guest_name||'').toLowerCase().includes(q)||(r.phone||'').toLowerCase().includes(q));
     $('#rows').innerHTML=filtered.map(r=>`
-      <tr class="${r.attending?'':'declinedRow'}">
+      <tr class="${r.capacity_rejected?'rejectedRow':(r.attending?'':'declinedRow')}">
         <td>${escapeHtml(r.guest_name)}</td>
         <td style="direction:ltr;text-align:right">${escapeHtml(r.phone||'')}</td>
         <td>${sideLabel[r.side]||r.side}</td>
-        <td>${r.attending?'<span class="tag yes">حاضر</span>':'<span class="tag no">معتذر</span>'}</td>
+        <td>${r.capacity_rejected?'<span class="tag full">مرفوض (اكتمال العدد)</span>':(r.attending?'<span class="tag yes">حاضر</span>':'<span class="tag no">معتذر</span>')}</td>
         <td>${r.companions}</td>
         <td style="direction:ltr;text-align:right">${r.code||''}</td>
         <td>${escapeHtml(r.notes||'')}</td>
@@ -383,7 +386,7 @@ tr.declinedRow:hover td{background:rgba(200,120,120,.12)}
   });
 
   $('#exportBtn').addEventListener('click',()=>{
-    const header=['guest_name','phone','side','attending','companions','code','notes','created_at'];
+    const header=['guest_name','phone','side','attending','capacity_rejected','companions','code','notes','created_at'];
     const lines=[header.join(',')].concat(allRows.map(r=>header.map(h=>{
       const v=r[h]==null?'':String(r[h]).replace(/"/g,'""');
       return /[",\n]/.test(v)?`"${v}"`:v;
