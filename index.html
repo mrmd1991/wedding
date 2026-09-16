@@ -26,35 +26,15 @@ body{min-height:100vh}
 #splash{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 25%,#302512 0,#120f08 38%,#070704 100%);display:flex;align-items:center;justify-content:center;padding:24px}.splashCard{text-align:center;max-width:430px;width:100%;border:1px solid rgba(217,182,111,.65);border-radius:24px;padding:42px 24px;background:rgba(8,9,5,.72);box-shadow:0 0 60px rgba(0,0,0,.45)}.splashCard h1{color:var(--gold2);font-size:34px;margin:0 0 8px}.splashCard p{color:#ddcfaa;line-height:1.9}.openBtn{width:100%;border:0;border-radius:14px;padding:16px 20px;margin-top:22px;background:linear-gradient(180deg,#ebcf91,#b68b43);color:#191208;font-weight:900;font-size:18px;cursor:pointer;touch-action:manipulation}.openBtn:active{transform:scale(.99)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10000;background:#181b11;border:1px solid var(--gold);color:#f5e7c3;padding:10px 16px;border-radius:999px;display:none;max-width:90vw;text-align:center}
 @media(max-width:420px){.groom{font-size:54px}.private{font-size:30px}.spacer{height:48vh;min-height:320px}.details{gap:9px}.box{padding:13px 8px}}
-#fakeError{display:none;position:fixed;inset:0;z-index:20000;background:#fff;color:#202124;font-family:Arial,Helvetica,sans-serif;padding:20px;overflow:auto}
-#fakeError .errWrap{max-width:600px;margin:48px auto 0}
-#fakeError h1{font-size:20px;font-weight:400;margin:20px 0 10px;color:#202124}
-#fakeError p{font-size:14px;color:#5f6368;margin:0 0 6px;line-height:1.5}
-#fakeError .errCode{font-size:12px;color:#5f6368;margin:0 0 22px}
-#fakeError .errActions{border-top:1px solid #eee;padding-top:16px;text-align:right}
-#fakeError button{background:#1a73e8;color:#fff;border:0;border-radius:4px;padding:9px 22px;font-size:14px;font-family:inherit;cursor:pointer}
-#fakeError button:hover{background:#1765cc}
+#fakeLoading{display:none;position:fixed;inset:0;z-index:20000;background:var(--bg);align-items:center;justify-content:center}
+.spinner{width:36px;height:36px;border:3px solid rgba(217,182,111,.22);border-top-color:var(--gold);border-radius:50%;animation:spin .85s linear infinite}
+@media(prefers-reduced-motion:reduce){.spinner{animation-duration:2.6s}}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <audio id="bgMusic" src="music.mp3" loop preload="auto"></audio>
-<div id="fakeError" dir="ltr">
-  <div class="errWrap">
-    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="1.2">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <path d="M14 2v6h6"/>
-      <circle cx="9.5" cy="14" r="0.9" fill="#5f6368" stroke="none"/>
-      <circle cx="14.5" cy="14" r="0.9" fill="#5f6368" stroke="none"/>
-      <path d="M9 18c.9-1.1 2.4-1.1 3.3-1.1s2.4 0 3.3 1.1" stroke-linecap="round"/>
-    </svg>
-    <h1>This page isn't working</h1>
-    <p id="fakeErrorHost"></p>
-    <p class="errCode">HTTP ERROR 500</p>
-    <div class="errActions">
-      <button id="fakeErrorReload" type="button">Reload</button>
-    </div>
-  </div>
-</div>
+<div id="fakeLoading"><div class="spinner"></div></div>
 <div id="splash">
   <div class="splashCard">
     <div style="font-size:35px">✦</div>
@@ -142,27 +122,25 @@ body{min-height:100vh}
     }catch(e){return null}
   }
 
-  function showFakeError(){
-    try{$('#fakeErrorHost').textContent=location.hostname+' is currently unable to handle this request.'}catch(e){}
-    $('#fakeError').style.display='block';
+  function showFakeLoading(){
+    $('#fakeLoading').style.display='flex';
   }
-  $('#fakeErrorReload').addEventListener('click',()=>location.reload());
 
   async function claimSlot(){
     const section=$('#rsvpSection');
     if(!urlSide||!supabase){section.style.display='none';return}
     const deviceId=getDeviceId();
-    if(!deviceId){showFakeError();return}
+    if(!deviceId){showFakeLoading();return}
     try{
       const {data,error}=await supabase.rpc('claim_link_slot',{p_side:urlSide,p_device_id:deviceId});
       if(error||!data||!data.ok){
-        showFakeError();
+        showFakeLoading();
         return;
       }
       section.style.display='';
       $('#rsvpResult').style.display='';
     }catch(e){
-      showFakeError();
+      showFakeLoading();
     }
   }
   claimSlot();
